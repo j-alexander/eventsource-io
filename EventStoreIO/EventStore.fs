@@ -9,48 +9,69 @@ open EventStore.ClientAPI.SystemData
 
 module EventStore =
 
-    let connect (host : string)
-                (port : int)
-                (username : string)
-                (password : string) =
+    type HostInfo = {
+        Username : string
+        Password : string
+        Name : string
+        Stream : string option
+        Port : int
+    }
+
+    let connect (host : HostInfo) : IEventStoreConnection =
         let settings =
-            let credentials = new UserCredentials(username, password)
+            let credentials = new UserCredentials(host.Username, host.Password)
             ConnectionSettings.Create().SetDefaultUserCredentials(credentials).Build()
         let endpoint =
             let address = 
-                host
+                host.Name
                 |> Dns.GetHostAddresses
                 |> Seq.find(fun x -> x.AddressFamily = AddressFamily.InterNetwork)
-            new IPEndPoint(address, port)
+            new IPEndPoint(address, host.Port)
         let connection = EventStoreConnection.Create(settings, endpoint)
         connection.ConnectAsync().Wait()
         connection
 
-    let rec read (connection : IEventStoreConnection)
-                 (stream : string)
-                 (from : int) =
-        asyncSeq {
+    let rec private readStream (connection : IEventStoreConnection)
+                               (stream : string)
+                               (from : int) : seq<Event> =
+        seq {
             let sliceTask = connection.ReadStreamEventsForwardAsync(stream, from, 1000, true)
-            let! slice = sliceTask |> Async.AwaitTask
+            let slice = sliceTask |> Async.AwaitTask |> Async.RunSynchronously
             match slice.Status with
             | SliceReadStatus.StreamDeleted -> failwith (sprintf "Stream %s at (%d) was deleted." stream from)
             | SliceReadStatus.StreamNotFound -> failwith (sprintf "Stream %s at (%d) was not found." stream from)
             | SliceReadStatus.Success ->
                 if slice.Events.Length > 0 then
-                    for event in slice.Events do
-                        yield event
-                    yield! read connection stream slice.NextEventNumber
+                    for resolvedEvent in slice.Events do
+                        yield { Type = resolvedEvent.Event.EventType
+                                Stream = resolvedEvent.Event.EventStreamId
+                                Data = resolvedEvent.Event.Data
+                                Metadata = resolvedEvent.Event.Metadata }
+                    yield! readStream connection stream slice.NextEventNumber
             | x -> failwith (sprintf "Stream %s at (%d) produced undocumented response: %A" stream from x)
         }
 
-    let write (connection : IEventStoreConnection)
-              (stream : string)
-              (expectedVersion : int)
-              (eventType : string)
-              (eventData : byte[])
-              (eventMetadata : byte[]) =
+    let private writeEvent (connection : IEventStoreConnection)
+                           (targetStream : string option)
+                           (event : Event) =
         let eventId = Guid.NewGuid()
-        let eventData = new EventData(eventId, eventType, true, eventData, eventMetadata)
-        connection.AppendToStreamAsync(stream, expectedVersion, eventData)
+        let eventStream = 
+            match targetStream with
+            | None -> event.Stream
+            | Some stream -> stream
+        let eventData = new EventData(eventId, event.Type, true, event.Data, event.Metadata)
+        connection.AppendToStreamAsync(eventStream, -2, eventData)
         |> Async.AwaitTask
         |> Async.RunSynchronously
+        |> ignore
+
+    let read (host : HostInfo) : seq<Event>=
+        let connection = connect host
+        let stream = match host.Stream with Some x -> x | None -> "$all"
+        readStream connection stream 0
+
+    let write (host : HostInfo) : seq<Event> -> unit =
+        let connection = connect host
+        Seq.iter (writeEvent connection host.Stream)
+        
+

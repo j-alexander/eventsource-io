@@ -8,14 +8,30 @@ download a .NET 4.5 (client profile) binary from the master source tree here:
 https://github.com/j-alexander/eventstore-io/blob/master/EventStoreIO.exe?raw=true
 
 
-example usage:
 ```
-EventStoreIO export targetFile sourceHost sourceStream
-EventStoreIO import sourceFile targetHost [targetStream - overrides the input stream value]
 
- e.g. EventStoreIO export .\\stream-a31613b3e13.json localhost stream-a31613b3e13
-      EventStoreIO import .\\stream-a31613b3e13.json localhost
-      EventStoreIO import .\\stream-a31613b3e13.json localhost copied-a31613b3e13
+USAGE: EventStoreIO.exe source target
+
+      source/target can be:
+
+      --file=[path-to-file.json]
+      --gzip=[path-to-compressed-file.json.gz]
+      --host=[username[:password]@]hostname[:port][/stream_name]
+
+            e.g. admin:changeit@localhost:1113/destination-a31613b3a13
+
+ import a json file:
+      EventStoreIO.exe --file=stream-a31613b3e13.json --host=localhost
+
+ import a json file to a specific stream:
+      EventStoreIO.exe --file=stream-a31613b3e13.json --host=admin:changeit@localhost:1113/copied-a31613b3a13
+
+ export all to a json file:
+      EventStoreIO.exe --host=localhost --file=exported.json
+
+ export a specific stream from localhost to file:
+      EventStoreIO.exe --host=/source_stream --file=exported.json
+	  
 ```
 
 events are stored in minimized json, new-line separated, according to the following format:

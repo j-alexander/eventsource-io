@@ -54,7 +54,10 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
+    <Compile Include="Event.fs" />
     <Compile Include="EventStore.fs" />
+    <Compile Include="JsonFile.fs" />
+    <Compile Include="Endpoint.fs" />
     <Compile Include="Stream.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
