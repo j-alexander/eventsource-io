@@ -26,7 +26,7 @@ module Endpoint =
 
         let defaults = new FileInfo(sprintf "export-%d.json" (DateTime.Now.Ticks))
 
-        /// -f --file=[path-to-file.json]
+        /// [path-to-file.json]
         let parse(input:string) : FileInfo option=
             try new FileInfo(input) |> Some
             with _ ->
@@ -34,6 +34,14 @@ module Endpoint =
                 printfn "ERROR: Unable to intepret file '%s'." input
                 printfn ""
                 None
+
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module GZip =
+        
+        let defaults = new FileInfo(sprintf "export-%d.json.gz" (DateTime.Now.Ticks))
+
+        /// [path-to-compressed-file.json.gz]
+        let parse = File.parse
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module Host =
@@ -91,7 +99,7 @@ module Endpoint =
                 printfn ""
                 None
         
-        /// -h --host=[username[:password]@]hostname[:port][/stream_name]
+        /// [username[:password]@]hostname[:port][/stream_name]
         let parse(input:string) : HostInfo option=
             match input |> split "@" with
             | credentials :: host :: [] ->
@@ -113,10 +121,10 @@ module Endpoint =
 
     let parse(input:string) : Endpoint option =
         match input |> split "=" with
-        | FileOption :: value :: [] -> value |> File.parse |> Option.bind(Endpoint.File >> Some)
-        | GZipOption :: value :: [] -> value |> File.parse |> Option.bind(Endpoint.GZip >> Some)
-        | HostOption :: value :: [] -> value |> Host.parse |> Option.bind(Endpoint.Host >> Some)
+        | FileOption :: value :: [] -> value |> File.parse |> Option.map(Endpoint.File)
+        | GZipOption :: value :: [] -> value |> GZip.parse |> Option.map(Endpoint.GZip)
+        | HostOption :: value :: [] -> value |> Host.parse |> Option.map(Endpoint.Host)
         | FileOption :: [] -> File.defaults |> Endpoint.File |> Some
-        | GZipOption :: [] -> File.defaults |> Endpoint.GZip |> Some
+        | GZipOption :: [] -> GZip.defaults |> Endpoint.GZip |> Some
         | HostOption :: [] -> Host.defaults |> Endpoint.Host |> Some
         | _ -> None
