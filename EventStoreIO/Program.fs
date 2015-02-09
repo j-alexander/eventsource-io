@@ -27,7 +27,7 @@ module Program =
                 if elapsed > !last then
                     printfn "@ %s events transferred: %d" (DateTime.Now.ToString("hh:mm:ss.fff")) index
                     last := elapsed
-                count := index
+                count := 1+index
 
             Stream.transferWithIntercept source target intercept
 
