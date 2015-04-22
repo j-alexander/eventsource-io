@@ -48,7 +48,7 @@ module Program =
             printfn ""
             printfn "      --file=[path-to-file.json]"
             printfn "      --gzip=[path-to-compressed-file.json.gz]"
-            printfn "      --host=[username[:password]@]hostname[:port][/stream_name]"
+            printfn "      --host=[username[:password]@]hostname[:port][/stream_name[+start]]"
             printfn ""
             printfn "            e.g. admin:changeit@localhost:1113/destination-a31613b3a13"
             printfn ""

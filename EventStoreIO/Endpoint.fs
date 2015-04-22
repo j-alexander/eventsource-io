@@ -50,7 +50,8 @@ module Endpoint =
                          Password="changeit"
                          Name="localhost";
                          Port=1113
-                         Stream=None }
+                         Stream=None
+                         From=None }
 
         /// username[:password]
         let parseCredentials(input:string)(host:HostInfo option) : HostInfo option =
@@ -68,11 +69,20 @@ module Endpoint =
             | Some host, false -> { host with Name=name } |> Some
             | host, _ -> host
 
-        /// stream
+        /// from
+        let parseFrom(input:string)(host:HostInfo) : HostInfo option =
+            match input |> Int32.TryParse with
+            | true, from -> { host with From=Some from } |> Some
+            | _ -> host |> Some
+
+        /// stream[+port]
         let parseStream(stream:string)(host:HostInfo option) : HostInfo option =
-            match host, String.IsNullOrWhiteSpace(stream) with
-            | Some host, false -> { host with Stream=Some stream } |> Some
-            | host, _ -> host
+            match host, String.IsNullOrWhiteSpace(stream), stream |> split "+" with
+            | Some host, false, stream :: [] ->
+                { host with Stream=Some stream } |> Some
+            | Some host, false, stream :: port :: _ ->
+                { host with Stream=Some stream } |> parseFrom port
+            | host, _, _ -> host
 
         /// port
         let parsePort(input:string)(host:HostInfo option) : HostInfo option =

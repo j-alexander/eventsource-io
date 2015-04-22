@@ -13,8 +13,9 @@ module EventStore =
         Username : string
         Password : string
         Name : string
-        Stream : string option
         Port : int
+        Stream : string option
+        From : int option
     }
 
     let connect (host : HostInfo) : IEventStoreConnection =
@@ -68,7 +69,8 @@ module EventStore =
     let read (host : HostInfo) : seq<Event>=
         let connection = connect host
         let stream = match host.Stream with Some x -> x | None -> "$all"
-        readStream connection stream 0
+        let from = match host.From with Some x -> x | None -> 0
+        readStream connection stream from
 
     let write (host : HostInfo) : seq<Event> -> unit =
         let connection = connect host
