@@ -16,7 +16,7 @@ USAGE: EventStoreIO.exe source target
 
       --file=[path-to-file.json]
       --gzip=[path-to-compressed-file.json.gz]
-      --host=[username[:password]@]hostname[:port][/stream_name]
+      --host=[username[:password]@]hostname[:port][/stream_name[+start]]
 
             e.g. admin:changeit@localhost:1113/destination-a31613b3a13
 
