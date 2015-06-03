@@ -8,9 +8,9 @@ open EventStore.ClientAPI
 
 
 type Endpoint =
-    | File of FileInfo
+    | Json of FileInfo
     | GZip of FileInfo
-    | Host of HostInfo
+    | EventStore of EventStore.HostInfo
 
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -22,7 +22,7 @@ module Endpoint =
         input.Replace(text, "")
  
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-    module File =
+    module Json =
 
         let defaults = new FileInfo(sprintf "export-%d.json" (DateTime.Now.Ticks))
 
@@ -41,10 +41,10 @@ module Endpoint =
         let defaults = new FileInfo(sprintf "export-%d.json.gz" (DateTime.Now.Ticks))
 
         /// [path-to-compressed-file.json.gz]
-        let parse = File.parse
+        let parse = Json.parse
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-    module Host =
+    module EventStore =
 
         let defaults = { Username="admin"
                          Password="changeit"
@@ -122,19 +122,19 @@ module Endpoint =
                 printfn ""
                 None
 
-    let private (|HostOption|FileOption|GZipOption|None|) (input:string) =
+    let private (|EventStoreOption|JsonOption|GZipOption|None|) (input:string) =
         match input |> remove "-" with
-        | "f" | "file" -> FileOption
+        | "j" | "json" -> JsonOption
         | "g" | "gzip" -> GZipOption
-        | "h" | "host" -> HostOption
+        | "e" | "eventstore" -> EventStoreOption
         | _ -> None
 
     let parse(input:string) : Endpoint option =
         match input |> split "=" with
-        | FileOption :: value :: [] -> value |> File.parse |> Option.map(Endpoint.File)
+        | JsonOption :: value :: [] -> value |> Json.parse |> Option.map(Endpoint.Json)
         | GZipOption :: value :: [] -> value |> GZip.parse |> Option.map(Endpoint.GZip)
-        | HostOption :: value :: [] -> value |> Host.parse |> Option.map(Endpoint.Host)
-        | FileOption :: [] -> File.defaults |> Endpoint.File |> Some
+        | EventStoreOption :: value :: [] -> value |> EventStore.parse |> Option.map(Endpoint.EventStore)
+        | JsonOption :: [] -> Json.defaults |> Endpoint.Json |> Some
         | GZipOption :: [] -> GZip.defaults |> Endpoint.GZip |> Some
-        | HostOption :: [] -> Host.defaults |> Endpoint.Host |> Some
+        | EventStoreOption :: [] -> EventStore.defaults |> Endpoint.EventStore |> Some
         | _ -> None

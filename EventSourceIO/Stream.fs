@@ -4,14 +4,14 @@ module Stream =
 
     let createSource =
         function
-        | Endpoint.Host host -> EventStore.read host
-        | Endpoint.File file -> JsonFile.read file
+        | Endpoint.EventStore host -> EventStore.read host
+        | Endpoint.Json file -> JsonFile.read file
         | Endpoint.GZip file -> JsonFile.Compressed.read file
 
     let createTarget =
         function
-        | Endpoint.Host host -> EventStore.write host
-        | Endpoint.File file -> JsonFile.write file
+        | Endpoint.EventStore host -> EventStore.write host
+        | Endpoint.Json file -> JsonFile.write file
         | Endpoint.GZip file -> JsonFile.Compressed.write file
 
     let transferWithIntercept (source:Endpoint) (target:Endpoint) (fn : int*Event -> unit) =

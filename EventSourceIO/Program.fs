@@ -46,23 +46,23 @@ module Program =
             printfn ""
             printfn "      source/target can be:"
             printfn ""
-            printfn "      --file=[path-to-file.json]"
+            printfn "      --json=[path-to-file.json]"
             printfn "      --gzip=[path-to-compressed-file.json.gz]"
-            printfn "      --host=[username[:password]@]hostname[:port][/stream_name[+start]]"
+            printfn "      --eventstore=[username[:password]@]hostname[:port][/stream_name[+start]]"
             printfn ""
             printfn "            e.g. admin:changeit@localhost:1113/destination-a31613b3a13"
             printfn ""
             printfn " import a json file:"
-            printfn "      %s --file=stream-a31613b3e13.json --host=localhost" name
+            printfn "      %s --json=stream-a31613b3e13.json --eventstore=localhost" name
             printfn ""
             printfn " import a json file to a specific stream:"
-            printfn "      %s --file=stream-a31613b3e13.json --host=admin:changeit@localhost:1113/copied-a31613b3a13" name
+            printfn "      %s --json=stream-a31613b3e13.json --eventstore=admin:changeit@localhost:1113/copied-a31613b3a13" name
             printfn ""
             printfn " export all to a json file:"
-            printfn "      %s --host=localhost --file=exported.json" name
+            printfn "      %s --eventstore=localhost --json=exported.json" name
             printfn ""
             printfn " export a specific stream from localhost to file:"
-            printfn "      %s --host=/source_stream --file=exported.json" name
+            printfn "      %s --eventstore=/source_stream --json=exported.json" name
             printfn ""
         
         0
