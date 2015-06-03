@@ -1,0 +1,25 @@
+﻿namespace EventSourceIO
+
+module Stream =
+
+    let createSource =
+        function
+        | Endpoint.Host host -> EventStore.read host
+        | Endpoint.File file -> JsonFile.read file
+        | Endpoint.GZip file -> JsonFile.Compressed.read file
+
+    let createTarget =
+        function
+        | Endpoint.Host host -> EventStore.write host
+        | Endpoint.File file -> JsonFile.write file
+        | Endpoint.GZip file -> JsonFile.Compressed.write file
+
+    let transferWithIntercept (source:Endpoint) (target:Endpoint) (fn : int*Event -> unit) =
+        let intercept i x =
+            fn(i,x)
+            x
+
+        createSource source |> Seq.mapi intercept |> createTarget target
+        
+    let transfer (source:Endpoint) (target:Endpoint) =
+        transferWithIntercept source target ignore
