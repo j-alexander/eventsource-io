@@ -1,4 +1,4 @@
-eventstore-io
+eventsource-io
 =============
 
 a tool for the command line interface to read eventstore streams into json files, or specially formatted json files into eventstore streams
