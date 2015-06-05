@@ -16,6 +16,7 @@ USAGE: EventSourceIO.exe source target
 
       --json=[path-to-file.json]
       --gzip=[path-to-compressed-file.json.gz]
+      --kafka=[host[:port][,host2[:port2][,host3[:port3][...]]]]/topic
       --eventstore=[username[:password]@]hostname[:port][/stream_name[+start]]
 
             e.g. admin:changeit@localhost:1113/destination-a31613b3a13
