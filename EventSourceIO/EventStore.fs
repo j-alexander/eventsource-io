@@ -66,7 +66,7 @@ module EventStore =
         |> Async.RunSynchronously
         |> ignore
 
-    let read (host : HostInfo) : seq<Event>=
+    let read (host : HostInfo) : seq<Event> =
         let connection = connect host
         let stream = match host.Stream with Some x -> x | None -> "$all"
         let from = match host.From with Some x -> x | None -> 0

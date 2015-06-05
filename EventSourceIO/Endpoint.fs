@@ -3,14 +3,13 @@
 open System
 open System.Diagnostics
 open System.IO
-open EventStore
-open EventStore.ClientAPI
 
 
 type Endpoint =
     | Json of FileInfo
     | GZip of FileInfo
     | EventStore of EventStore.HostInfo
+    | Kafka of Kafka.ClusterInfo
 
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -45,6 +44,8 @@ module Endpoint =
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module EventStore =
+        
+        open EventStore
 
         let defaults = { Username="admin"
                          Password="changeit"
@@ -105,7 +106,7 @@ module Endpoint =
                 host
             | unknown ->
                 printfn ""
-                printfn "ERROR: Unable to parse host name: %A" unknown
+                printfn "ERROR: Unable to parse EventStore host name: %A" unknown
                 printfn ""
                 None
         
@@ -118,23 +119,76 @@ module Endpoint =
                 defaults |> Some |> parseNamePortAndStream host
             | unknown ->
                 printfn ""
-                printfn "ERROR: Unable to parse host information: %A" unknown
+                printfn "ERROR: Unable to parse EventStore host information: %A" unknown
                 printfn ""
                 None
 
-    let private (|EventStoreOption|JsonOption|GZipOption|None|) (input:string) =
+    [<CompilationRepresentationAttribute(CompilationRepresentationFlags.ModuleSuffix)>]
+    module Kafka =
+
+        open Kafka
+
+        let defaultHost = { Name = "localhost"; Port = 9092 }
+        let defaults = { Hosts = [defaultHost]; Topic = "all" }
+
+        /// port
+        let parsePort(input:string)(host:HostInfo option) : HostInfo option =
+            match host, input |> Int32.TryParse with
+            | Some host, (true, port) -> { host with Port=port } |> Some
+            | _ -> host
+
+        // name
+        let parseName(name:string)(host:HostInfo option) : HostInfo option =
+            match host, String.IsNullOrWhiteSpace(name) with
+            | Some host, false -> { host with Name = name } |> Some
+            | _ -> None
+
+        /// name[:port]
+        let parseNameAndPort (host:string) : HostInfo option =
+            match host |> split ":" with
+            | name :: [] -> defaultHost |> Some |> parseName name
+            | name :: port :: [] -> defaultHost |> Some |> parseName name |> parsePort port
+            | _ -> None
+
+        /// hostname[:port][,hostname2[:port2][,hostname3[:port3][...]]]
+        let parseHosts(hosts:string)(cluster:ClusterInfo option) : ClusterInfo option =
+            match cluster, hosts |> split "," |> List.choose parseNameAndPort with
+            | Some cluster, x :: xs -> { cluster with Hosts = x :: xs } |> Some
+            | _ -> cluster
+
+        /// topic
+        let parseTopic(topic:string)(cluster:ClusterInfo option) : ClusterInfo option =
+            match cluster, String.IsNullOrWhiteSpace(topic) with
+            | Some cluster, false -> { cluster with Topic = topic } |> Some
+            | _ -> None
+
+        /// hostname[:port][,hostname2[:port2][,hostname3[:port3][...]]]/topic
+        let parse(input:string) : ClusterInfo option =
+            match input |> split "/" with
+            | hosts :: topic :: [] -> defaults |> Some |> parseHosts hosts |> parseTopic topic
+            | unknown ->
+                printfn ""
+                printfn "ERROR: Unable to parse Kafka host information: %A" unknown
+                printfn ""
+                None
+
+
+    let private (|EventStoreOption|JsonOption|GZipOption|KafkaOption|None|) (input:string) =
         match input |> remove "-" with
         | "j" | "json" -> JsonOption
         | "g" | "gzip" -> GZipOption
         | "e" | "eventstore" -> EventStoreOption
+        | "k" | "kafka" -> KafkaOption
         | _ -> None
 
     let parse(input:string) : Endpoint option =
         match input |> split "=" with
         | JsonOption :: value :: [] -> value |> Json.parse |> Option.map(Endpoint.Json)
         | GZipOption :: value :: [] -> value |> GZip.parse |> Option.map(Endpoint.GZip)
+        | KafkaOption :: value :: [] -> value |> Kafka.parse |> Option.map(Endpoint.Kafka)
         | EventStoreOption :: value :: [] -> value |> EventStore.parse |> Option.map(Endpoint.EventStore)
         | JsonOption :: [] -> Json.defaults |> Endpoint.Json |> Some
         | GZipOption :: [] -> GZip.defaults |> Endpoint.GZip |> Some
+        | KafkaOption :: [] -> Kafka.defaults |> Endpoint.Kafka |> Some
         | EventStoreOption :: [] -> EventStore.defaults |> Endpoint.EventStore |> Some
         | _ -> None

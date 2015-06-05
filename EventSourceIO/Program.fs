@@ -48,6 +48,7 @@ module Program =
             printfn ""
             printfn "      --json=[path-to-file.json]"
             printfn "      --gzip=[path-to-compressed-file.json.gz]"
+            printfn "      --kafka=[host[:port][,host2[:port2][,host3[:port3][...]]]]/topic"
             printfn "      --eventstore=[username[:password]@]hostname[:port][/stream_name[+start]]"
             printfn ""
             printfn "            e.g. admin:changeit@localhost:1113/destination-a31613b3a13"
