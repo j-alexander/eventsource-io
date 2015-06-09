@@ -5,6 +5,7 @@ module Stream =
     let createSource =
         function
         | Endpoint.EventStore host -> EventStore.read host
+        | Endpoint.AzureQueue queue -> AzureQueue.read queue
         | Endpoint.Json file -> JsonFile.read file
         | Endpoint.GZip file -> JsonFile.Compressed.read file
         | Endpoint.Kafka cluster -> Kafka.read cluster
@@ -12,6 +13,7 @@ module Stream =
     let createTarget =
         function
         | Endpoint.EventStore host -> EventStore.write host
+        | Endpoint.AzureQueue queue -> AzureQueue.write queue
         | Endpoint.Json file -> JsonFile.write file
         | Endpoint.GZip file -> JsonFile.Compressed.write file
         | Endpoint.Kafka cluster -> Kafka.write cluster

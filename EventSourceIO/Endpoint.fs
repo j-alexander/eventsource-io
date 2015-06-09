@@ -9,6 +9,7 @@ type Endpoint =
     | Json of FileInfo
     | GZip of FileInfo
     | EventStore of EventStore.HostInfo
+    | AzureQueue of AzureQueue.QueueInfo
     | Kafka of Kafka.ClusterInfo
 
 
@@ -19,6 +20,8 @@ module Endpoint =
         input.Split(separators |> Array.ofSeq) |> List.ofArray
     let private remove (text : string) (input : string) =
         input.Replace(text, "")
+    let private lower (input : string) =
+        input.ToLowerInvariant()
  
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module Json =
@@ -173,11 +176,30 @@ module Endpoint =
                 None
 
 
-    let private (|EventStoreOption|JsonOption|GZipOption|KafkaOption|None|) (input:string) =
-        match input |> remove "-" with
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module AzureQueue =
+
+        open AzureQueue
+
+        /// queue@connectionstring
+        let parse(input:string) : QueueInfo option =
+            match input |> split "@" with
+            | name :: connectionString :: [] when name |> String.IsNullOrWhiteSpace |> not ->
+                { QueueInfo.Name = name; QueueInfo.ConnectionString = connectionString } |> Some
+            | unknown ->
+                printfn ""
+                printfn "ERROR: Unable to parse AzureQueue information: %A" unknown
+                printfn ""
+                None
+
+
+
+    let private (|EventStoreOption|JsonOption|GZipOption|KafkaOption|AzureQueueOption|None|) (input:string) =
+        match input |> lower |> remove "-" with
         | "j" | "json" -> JsonOption
         | "g" | "gzip" -> GZipOption
         | "e" | "eventstore" -> EventStoreOption
+        | "q" | "azurequeue" -> AzureQueueOption
         | "k" | "kafka" -> KafkaOption
         | _ -> None
 
@@ -191,4 +213,5 @@ module Endpoint =
         | GZipOption :: [] -> GZip.defaults |> Endpoint.GZip |> Some
         | KafkaOption :: [] -> Kafka.defaults |> Endpoint.Kafka |> Some
         | EventStoreOption :: [] -> EventStore.defaults |> Endpoint.EventStore |> Some
+        | AzureQueueOption :: x -> x |> String.concat "=" |> AzureQueue.parse |> Option.map(Endpoint.AzureQueue)
         | _ -> None
