@@ -1,7 +1,8 @@
 eventsource-io
 =============
 
-a tool for the command line interface to read eventstore streams into json files, or specially formatted json files into eventstore streams
+a tool for the command line interface to transfer data among Windows Azure queues, EventStore streams, Kafka topics,
+and specially formatted JSON files in both GZip compressed and uncompressed formats
 
 download a .NET 4.5 (client profile) binary from the master source tree here:
 
@@ -16,9 +17,14 @@ USAGE: EventSourceIO.exe source target
 
       --json=[path-to-file.json]
       --gzip=[path-to-compressed-file.json.gz]
-      --kafka=[host[:port][,host2[:port2][,host3[:port3][...]]]]/topic
-      --eventstore=[username[:password]@]hostname[:port][/stream_name[+start]]
 
+      --kafka=[host[:port][,host2[:port2][,host3[:port3][...]]]]/topic
+            e.g. localhost:9092/topicname
+
+      --azurequeue=queue@"connectionstring"
+            e.g. queuename@"AccountName=storageAccount;AccountKey=a++cdae2=="
+
+      --eventstore=[username[:password]@]hostname[:port][/stream_name[+start]]
             e.g. admin:changeit@localhost:1113/destination-a31613b3a13
 
  import a json file:
@@ -42,4 +48,4 @@ events are stored in minimized json, new-line separated, according to the follow
 { "type":"eventtype", "stream":"eventstream", "data": {}, "metadata": {} }
 ...
 ```
-data and metadata fields are inline, json-formatted, in order to facilitate simple editing
+data and metadata fields are inline, json-formatted, and sequential to facilitate easy editing
