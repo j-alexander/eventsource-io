@@ -46,6 +46,7 @@ module EventStore =
                     for resolvedEvent in slice.Events do
                         yield { Type = resolvedEvent.Event.EventType
                                 Stream = resolvedEvent.Event.EventStreamId
+                                Date = resolvedEvent.Event.Created
                                 Data = resolvedEvent.Event.Data
                                 Metadata = resolvedEvent.Event.Metadata }
                     yield! readStream connection stream slice.NextEventNumber

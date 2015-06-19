@@ -76,6 +76,7 @@ module Kafka =
 
                         yield { Type = eventType
                                 Stream = topic
+                                Date = DateTime.Now
                                 Data = event.Value
                                 Metadata = Array.empty }
                         yield! current |> Map.add partition offset |> loop

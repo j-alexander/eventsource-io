@@ -1,5 +1,6 @@
 ﻿namespace EventSourceIO
 
+open System
 open Microsoft.WindowsAzure.Storage
 open Microsoft.WindowsAzure.Storage.Queue
 
@@ -22,9 +23,14 @@ module AzureQueue =
         let rec dequeue() =
             try let message = queue.GetMessage()
                 queue.DeleteMessage(message)
+                let insertionTime =
+                    if message.InsertionTime.HasValue then 
+                        message.InsertionTime.Value.DateTime
+                    else DateTime.Now
                 seq {
                     yield { Event.Type = queue.Name
                             Event.Stream = queue.Name
+                            Event.Date = insertionTime
                             Event.Data = message.AsBytes
                             Event.Metadata = Array.empty }
                     yield! dequeue()
