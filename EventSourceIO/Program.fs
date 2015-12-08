@@ -11,7 +11,7 @@ module Program =
 
         match argv |> List.ofArray |> List.map Endpoint.parse with
 
-        | Some source :: Some target :: [] ->
+        | [ Some source; Some target ] ->
 
             printfn ""
             printfn "SOURCE\n------\n%A" source
@@ -20,7 +20,7 @@ module Program =
             printfn ""
 
             let watch = Stopwatch.StartNew()
-            let count, last = ref 0, ref 0
+            let count, last = ref -1, ref 0
             
             let intercept(index,_) =
                 let elapsed = int (watch.Elapsed.TotalSeconds / 5.2)
