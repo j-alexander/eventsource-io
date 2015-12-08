@@ -3,11 +3,23 @@
 open System
 open System.Diagnostics
 open System.IO
+open NLog
+open NLog.Config
+open NLog.Targets
+open NLog.FSharp
 
 module Program =
 
+    LogManager.Configuration <- 
+        let configuration = new LoggingConfiguration()
+        let target = new ConsoleTarget()
+        let rule = new LoggingRule("*", LogLevel.Error, target)
+        configuration.AddTarget("*", target)
+        configuration.LoggingRules.Add(rule)
+        configuration
+
     [<EntryPoint>]
-    let main argv = 
+    let main argv =
 
         match argv |> List.ofArray |> List.map Endpoint.parse with
 

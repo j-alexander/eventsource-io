@@ -3,11 +3,14 @@
 open System
 open System.Net
 open System.Text
+open NLog.FSharp
 open KafkaNet
 open KafkaNet.Model
 open KafkaNet.Protocol
 
 module Kafka =
+    
+    let log = new Logger()
 
     type HostInfo = {
         Name : string
@@ -18,14 +21,13 @@ module Kafka =
         Hosts : HostInfo list
         Topic : string
     }
-
     
     type Offsets = Map<int, int64>
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module Offsets =
 
-        let private pairwise (l : Offsets, r : Offsets) = 
+        let internal pairwise (l : Offsets, r : Offsets) = 
             let joiner partition (l,_) (_,r) = (l,r)
             let l = l |> Map.map (fun _ x -> x, -1L)
             let r = r |> Map.map (fun _ x -> -1L, x)
@@ -40,6 +42,8 @@ module Kafka =
             >> Async.AwaitTask
             >> Async.RunSynchronously
             >> Seq.choose(fun x -> 
+
+                log.Info "%s partition:%d error:%d offsets:%A" x.Topic x.PartitionId x.Error (Seq.toList x.Offsets)
 
                 match x.Error, Seq.toList x.Offsets with
                 | 0s, [ finish; start ] when (start < finish) -> Some (x.PartitionId, (start, finish))
@@ -60,6 +64,8 @@ module Kafka =
                 let consumer = new Consumer(new ConsumerOptions(topic, router))
                 let partitions = Offsets.byPartition consumer topic
                 
+                log.Info "offset [partition(start,finish)]: %A" partitions
+
                 partitions |> Map.map(fun partition (start,_) -> start),
                 partitions |> Map.map(fun partition (_,finish) -> finish)
 
@@ -73,6 +79,7 @@ module Kafka =
             let rec loop (current : Offsets) =
                 seq {
                     if Offsets.incomplete(current, finish) && events.MoveNext() then
+                        log.Debug "offsets: %A" (Offsets.pairwise(current,finish))
 
                         let event = events.Current
                         let eventType = event.Key |> function | null | [||] -> topic
