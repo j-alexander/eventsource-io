@@ -41,13 +41,24 @@ module Program =
                     last := elapsed
                 count := index
 
-            Stream.transferWithIntercept source target intercept
+            try
+                Stream.transferWithIntercept source target intercept
 
-            printfn ""
-            printfn "COMPLETED"
-            printfn "---------"
-            printfn "%d events transferred in %A" (!count+1) watch.Elapsed
-            printfn ""
+                printfn ""
+                printfn "COMPLETED"
+                printfn "---------"
+                printfn "%d events transferred in %A" (!count+1) watch.Elapsed
+                printfn ""
+
+            with error ->
+                
+                printfn ""
+                printfn "FAILED"
+                printfn "---------"
+                printfn "%d events transferred in %A" (!count+1) watch.Elapsed
+                printfn ""
+                printfn "%A" error
+                printfn ""
 
         | _ -> 
 
