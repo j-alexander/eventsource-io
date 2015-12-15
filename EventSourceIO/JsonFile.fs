@@ -9,44 +9,59 @@ open FSharp.Data
 
 module JsonFile =
 
-    let private toJson (event : Event) =
-        try
+
+    let private toJson =
+            
+        let encodeFieldAs json text = function
+            | [||] -> []
+            | bytes ->
+                match bytes |> Encoding.UTF8.GetString with
+                | x when String.IsNullOrWhiteSpace x -> []
+                | x ->
+                    try [ json, JsonValue.Parse x ]
+                    with e ->
+                        [ text, JsonValue.String x ]
+
+        fun (event : Event) ->
             [| yield "type", event.Type |> JsonValue.String
                yield "stream", event.Stream |> JsonValue.String
                yield "date", event.Date.ToUniversalTime().ToString("o") |> JsonValue.String
-               match event.Data |> Encoding.UTF8.GetString with
-               | x when (x |> String.IsNullOrWhiteSpace) -> ()
-               | x -> yield "data", x |> JsonValue.Parse
-               match event.Metadata |> Encoding.UTF8.GetString with
-               | x when (x |> String.IsNullOrWhiteSpace) -> ()
-               | x -> yield "metadata", x |> JsonValue.Parse
-            |] |> JsonValue.Record |> Some
-        with e ->
-            printfn "Skipping: %s " (event.Data |> Encoding.UTF8.GetString)
-            printfn "Error: %A" e
-            None
 
-    let private fromJson (json : JsonValue) =
-        { Type = json.["type"].AsString()
-          Stream = json.["stream"].AsString()
-          Date =
-            match json.TryGetProperty("date") with
+               yield! encodeFieldAs "data" "text" event.Data
+               yield! encodeFieldAs "metadata" "metatext" event.Metadata
+            |] |> JsonValue.Record
+
+
+    let private fromJson =
+
+        let decodeDate (data:JsonValue) =
+            match data.TryGetProperty("date") with
             | None -> DateTime.Now
-            | Some x -> x.AsDateTime()
-          Data =
-            match json.TryGetProperty("data") with
-            | None -> Array.empty
-            | Some x -> x.ToString() |> Encoding.UTF8.GetBytes
-          Metadata =
-            match json.TryGetProperty("metadata") with
-            | None -> Array.empty
-            | Some x -> x.ToString() |> Encoding.UTF8.GetBytes }
+            | Some x ->
+                try x.AsDateTime()
+                with e -> DateTime.Now
+
+        let decodeFieldAs json text (data:JsonValue) =
+            match data.TryGetProperty(json) with
+            | Some x -> Encoding.UTF8.GetBytes (x.ToString())
+            | None ->
+                match data.TryGetProperty(text) with
+                | Some (JsonValue.String x) -> Encoding.UTF8.GetBytes x
+                | _ -> [||]
+
+        fun (json : JsonValue) ->
+            { Type = json.["type"].AsString()
+              Stream = json.["stream"].AsString()
+              Date = decodeDate json
+              Data = decodeFieldAs "data" "text" json
+              Metadata = decodeFieldAs "metadata" "metatext" json }
+
 
     let private minimize (json : JsonValue) =
         json.ToString(JsonSaveOptions.DisableFormatting)
 
     let write (target : FileInfo) (events : seq<Event>) =
-        File.WriteAllLines(target.FullName, events |> Seq.choose(toJson) |> Seq.map(minimize))
+        File.WriteAllLines(target.FullName, events |> Seq.map(toJson >> minimize))
 
     let read (source : FileInfo) : seq<Event> =
         File.ReadLines(source.FullName) |> Seq.map(JsonValue.Parse>>fromJson)
@@ -59,7 +74,7 @@ module JsonFile =
             use gzip = new GZipStream(stream, CompressionLevel.Optimal)
             use writer = new StreamWriter(gzip)
 
-            for json in events |> Seq.choose(toJson) |> Seq.map(minimize) do
+            for json in events |> Seq.map(toJson >> minimize) do
                 writer.WriteLine(json)
                 writer.Flush()
 
