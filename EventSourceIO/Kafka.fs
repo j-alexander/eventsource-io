@@ -71,7 +71,10 @@ module Kafka =
 
             use consumer = 
                 let start = [| for partition, offset in start |> Map.toSeq -> new OffsetPosition(partition, offset) |]
-                new Consumer(new ConsumerOptions(topic, router), start)
+                let options = new ConsumerOptions(topic, router)
+                options.PartitionWhitelist.Clear()
+                options.PartitionWhitelist.AddRange(start |> Seq.map (fun x -> x.PartitionId))
+                new Consumer(options, start)
                 
 
             let events = consumer.Consume().GetEnumerator()
