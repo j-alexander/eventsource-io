@@ -38,17 +38,19 @@ module Kafka =
             >> Map.exists(fun _ (current, required) -> current + 1L < required)
 
         let byPartition (consumer : Consumer) =
-            consumer.GetTopicOffsetAsync
+            fun topic -> consumer.GetTopicOffsetAsync(topic,1048576,-1)
             >> Async.AwaitTask
             >> Async.RunSynchronously
-            >> Seq.choose(fun x -> 
-
+            >> Seq.map(fun x ->
                 log.Info "%s partition:%d error:%d offsets:%A" x.Topic x.PartitionId x.Error (Seq.toList x.Offsets)
-
-                match x.Error, Seq.toList x.Offsets with
-                | 0s, [ finish; start ] when (start < finish) -> Some (x.PartitionId, (start, finish))
-                | _ -> None)
-
+                x)
+            >> Seq.filter(fun x -> x.Error = 0s)
+            >> Seq.filter(fun x -> x.Offsets.Count > 1)
+            >> Seq.map(fun x ->
+                    let id = x.PartitionId
+                    let start = Seq.min x.Offsets
+                    let finish = Seq.max x.Offsets
+                    id, (start, finish))
             >> Map.ofSeq
 
     let route (hosts : HostInfo seq) =
