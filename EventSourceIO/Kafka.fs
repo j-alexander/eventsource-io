@@ -115,5 +115,10 @@ module Kafka =
         producer.SendMessageAsync(cluster.Topic, events)
         |> Async.AwaitTask
         |> Async.RunSynchronously
-        |> ignore
+        |> Seq.iter (function
+            | response when response.Error = 0s -> ()
+            | response -> 
+                let message = sprintf "error code %d writing to %A" response.Error cluster
+                message |> log.Error "%s"
+                message |> failwith)
         
