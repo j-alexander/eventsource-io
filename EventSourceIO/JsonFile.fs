@@ -13,7 +13,7 @@ module JsonFile =
     let private toJson =
             
         let encodeFieldAs json text = function
-            | [||] -> []
+            | null | [||] -> []
             | bytes ->
                 match bytes |> Encoding.UTF8.GetString with
                 | x when String.IsNullOrWhiteSpace x -> []
